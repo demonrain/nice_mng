@@ -8,6 +8,13 @@ export const authApi = {
   routes: () => http.get<RouteItem[]>('/system/menu/routes'),
 };
 
+export const mfaApi = {
+  status: () => http.get<{ enabled: boolean }>('/auth/mfa/status'),
+  setup: () => http.post<{ secret: string; otpauthUrl: string; qrcode: string }>('/auth/mfa/setup'),
+  enable: (code: string) => http.post<{ backupCodes: string[] }>('/auth/mfa/enable', { code }),
+  disable: (code: string) => http.post('/auth/mfa/disable', { code }),
+};
+
 export const userApi = {
   list: (params: AnyParams) => http.get<PageResult<any>>('/system/user', { params }),
   detail: (id: number) => http.get<any>(`/system/user/${id}`),

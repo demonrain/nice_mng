@@ -8,6 +8,7 @@ import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { OperLogInterceptor } from './common/interceptors/oper-log.interceptor';
 import { HealthController } from './health.controller';
 
@@ -57,6 +58,7 @@ import { NotificationModule } from './modules/notification/notification.module';
   ],
   controllers: [HealthController],
   providers: [
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_INTERCEPTOR, useClass: OperLogInterceptor },

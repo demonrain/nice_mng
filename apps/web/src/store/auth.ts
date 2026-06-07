@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import axios from 'axios';
-import type { ProfileInfo, TokenPair } from '@nice-admin/shared';
+import type { LoginResult, ProfileInfo, TokenPair } from '@nice-admin/shared';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 // 独立 axios 实例，避免与全局拦截器形成循环
@@ -20,7 +20,8 @@ interface AuthState {
     password: string;
     captchaId?: string;
     captcha?: string;
-  }) => Promise<void>;
+  }) => Promise<LoginResult>;
+  loginMfa: (mfaToken: string, code: string) => Promise<void>;
   refresh: () => Promise<string>;
   fetchProfile: () => Promise<ProfileInfo>;
   logout: () => void;
@@ -42,6 +43,16 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (payload) => {
         const { data } = await rawClient.post('/auth/login', payload);
+        const result = data.data as LoginResult;
+        // 需要二次验证：不设置 token，交给页面进入 MFA 步骤
+        if ('mfaRequired' in result && result.mfaRequired) return result;
+        const tokens = result as TokenPair;
+        set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+        return result;
+      },
+
+      loginMfa: async (mfaToken, code) => {
+        const { data } = await rawClient.post('/auth/login/mfa', { mfaToken, code });
         const tokens = data.data as TokenPair;
         set({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
       },

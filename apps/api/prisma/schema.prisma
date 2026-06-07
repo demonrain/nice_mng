@@ -30,6 +30,12 @@ model User {
   status       Int        @default(1) // 1 启用 0 停用
   remark       String?    @db.Text
   isSuperAdmin Boolean    @default(false)
+  // —— P0 安全：MFA / 会话 / 密码策略 ——
+  mfaEnabled   Boolean    @default(false) // 是否开启二次验证(TOTP)
+  mfaSecret    String? // TOTP 密钥(绑定中或已启用)
+  mfaBackupCodes String?  @db.Text // 备用码(bcrypt 哈希后的 JSON 数组)
+  tokenVersion Int        @default(0) // 会话版本，改密/强退后 +1 使旧 token 失效
+  pwdUpdatedAt DateTime? // 密码最后修改时间(用于过期策略)
   deptId       Int?
   dept         Dept?      @relation(fields: [deptId], references: [id], onDelete: SetNull)
   roles        UserRole[]

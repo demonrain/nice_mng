@@ -6,9 +6,11 @@
 | [architecture.md](./architecture.md) | 技术栈、目录结构、数据流、认证鉴权链路、数据权限 |
 | [modules.md](./modules.md) | 后端模块清单、前端页面清单、按钮级权限、数据模型 |
 | [database.md](./database.md) | 多数据源 / MySQL 支持、provider 切换、跨库兼容、额外数据源扩展 |
+| [security.md](./security.md) | 安全基线(P0)：限流、登录锁定/异地、MFA、密码强度、会话失效 |
 | [tutorial.md](./tutorial.md) | 使用教程：登录、各功能操作、低代码/代码生成、二次开发速查 |
 | [deployment.md](./deployment.md) | Docker 一键部署、本地开发、常见问题 |
 | [extension-guide.md](./extension-guide.md) | 代码生成器、新增模块/页面/定时任务/低代码表单的完整流程 |
+| [roadmap-phase2.md](./roadmap-phase2.md) | 二期需求文档：可扩展功能清单、优先级、里程碑与待决策项 |
 | [PROJECT_MEMORY.md](./PROJECT_MEMORY.md) | 工程记忆：约定、目录地图、坑位与维护要点（便于后续修改） |
 
 ## 项目概览

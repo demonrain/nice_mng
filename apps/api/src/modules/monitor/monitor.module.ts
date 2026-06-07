@@ -79,7 +79,8 @@ export class MonitorService {
 
   async forceLogout(socketId: string) {
     const client = this.gateway.getOnlineList().find((c) => c.socketId === socketId);
-    if (client) await this.permissionService.clearUserAuth(client.userId);
+    // 失效该用户的 token（tokenVersion +1）并清缓存，再断开 socket
+    if (client) await this.permissionService.invalidateUserSessions(client.userId);
     const ok = this.gateway.forceLogout(socketId);
     return { success: ok };
   }

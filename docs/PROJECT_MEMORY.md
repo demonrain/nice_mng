@@ -87,6 +87,20 @@ docker compose -f docker-compose.mysql.yml up -d --build  # MySQL 部署
 - 加数据源：见 `docs/database.md`。
 - 代码生成器/表单设计器：`系统工具` 菜单下。
 
+## 7.5 二期进展（feature/phase2 分支）
+
+- **P0 安全基线已实现**（详见 `docs/security.md`）：
+  - 接口限流：`@RateLimit` 装饰器 + 全局 `RateLimitGuard`(Redis 计数, 429)。
+  - 登录失败锁定 + 异地检测：`auth.service.ts`，Redis key `login:fail:*`/`login:lock:*`。
+  - MFA(TOTP+备用码)：`auth/mfa.service.ts`；登录两步 `POST /auth/login` → `POST /auth/login/mfa`。
+  - 密码强度策略：`common/utils/password.util.ts`，在 `ProfileService.changePassword` 生效。
+  - 会话失效：`User.tokenVersion` + JWT `ver` 校验；改密/强退调用 `PermissionService.invalidateUserSessions`。
+- **schema 变更**：`sys_user` 新增 `mfaEnabled/mfaSecret/mfaBackupCodes/tokenVersion/pwdUpdatedAt`，改动后需 `pnpm db:generate && pnpm db:push`。
+- **新依赖**：`otplib`、`qrcode`（@types/qrcode）。安装后才能编译。
+- **默认 admin123 不满足新密码策略**（缺大写），改密时需满足策略；种子直写不拦截。
+- **新增配置**：`.env.example` 的 `SEC_*` 段。
+- 待办 P0-5：迁移规范化（`prisma/migrations` + CI）。
+
 ## 8. 待办 / 可改进
 
 - 暂无版本化迁移文件（用 db push）；若要 CI 严格迁移，按单一 provider 引入 `prisma/migrations`。

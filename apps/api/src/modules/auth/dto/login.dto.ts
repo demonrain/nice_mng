@@ -30,3 +30,23 @@ export class RefreshDto {
   @IsString()
   refreshToken!: string;
 }
+
+export class MfaLoginDto {
+  @ApiProperty({ description: 'login 返回的 mfaToken' })
+  @IsString()
+  mfaToken!: string;
+
+  @ApiProperty({ description: 'TOTP 6 位验证码或备用码' })
+  @IsString()
+  @MinLength(6)
+  @MaxLength(20)
+  code!: string;
+}
+
+export class MfaCodeDto {
+  @ApiProperty({ description: 'TOTP 验证码或备用码' })
+  @IsString()
+  @MinLength(6)
+  @MaxLength(20)
+  code!: string;
+}

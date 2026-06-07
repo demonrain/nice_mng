@@ -1,6 +1,173 @@
-import { Button, Card, Col, Descriptions, Form, Input, Row, Tabs, App as AntdApp } from 'antd';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Descriptions,
+  Form,
+  Input,
+  Modal,
+  Row,
+  Space,
+  Tabs,
+  Tag,
+  Typography,
+  App as AntdApp,
+} from 'antd';
 import { useAuthStore } from '@/store/auth';
-import { userApi } from '@/api/endpoints';
+import { mfaApi, userApi } from '@/api/endpoints';
+
+function MfaPanel() {
+  const { message } = AntdApp.useApp();
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [setup, setSetup] = useState<{ qrcode: string; secret: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+
+  const loadStatus = async () => {
+    const s = await mfaApi.status();
+    setEnabled(s.enabled);
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const onStartSetup = async () => {
+    setLoading(true);
+    try {
+      const data = await mfaApi.setup();
+      setSetup({ qrcode: data.qrcode, secret: data.secret });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onEnable = async () => {
+    setLoading(true);
+    try {
+      const { backupCodes: codes } = await mfaApi.enable(code.trim());
+      setBackupCodes(codes);
+      setSetup(null);
+      setCode('');
+      await loadStatus();
+      message.success('二次验证已开启');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onDisable = async () => {
+    setLoading(true);
+    try {
+      await mfaApi.disable(code.trim());
+      setCode('');
+      await loadStatus();
+      message.success('二次验证已关闭');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 460 }}>
+      <Space style={{ marginBottom: 16 }}>
+        <span>当前状态：</span>
+        {enabled === null ? (
+          <Tag>加载中</Tag>
+        ) : enabled ? (
+          <Tag color="green">已开启</Tag>
+        ) : (
+          <Tag color="default">未开启</Tag>
+        )}
+      </Space>
+
+      {enabled === false && !setup && (
+        <div>
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="使用 Google Authenticator、Microsoft Authenticator 等 TOTP 应用扫码绑定。"
+          />
+          <Button type="primary" loading={loading} onClick={onStartSetup}>
+            开启二次验证
+          </Button>
+        </div>
+      )}
+
+      {setup && (
+        <div>
+          <p>1. 用验证器 App 扫描下方二维码（或手动输入密钥）：</p>
+          <img src={setup.qrcode} alt="MFA QRCode" style={{ width: 180, height: 180 }} />
+          <p style={{ wordBreak: 'break-all' }}>
+            密钥：<Typography.Text code copyable>{setup.secret}</Typography.Text>
+          </p>
+          <p style={{ marginTop: 12 }}>2. 输入 App 显示的 6 位验证码完成绑定：</p>
+          <Space>
+            <Input
+              placeholder="6 位验证码"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              style={{ width: 160 }}
+            />
+            <Button type="primary" loading={loading} onClick={onEnable}>
+              确认开启
+            </Button>
+            <Button onClick={() => { setSetup(null); setCode(''); }}>取消</Button>
+          </Space>
+        </div>
+      )}
+
+      {enabled === true && (
+        <div>
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="关闭二次验证会降低账号安全性。需输入当前验证码或备用码确认。"
+          />
+          <Space>
+            <Input
+              placeholder="验证码 / 备用码"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              style={{ width: 180 }}
+            />
+            <Button danger loading={loading} onClick={onDisable}>
+              关闭二次验证
+            </Button>
+          </Space>
+        </div>
+      )}
+
+      <Modal
+        open={!!backupCodes}
+        title="请妥善保存备用码"
+        onOk={() => setBackupCodes(null)}
+        onCancel={() => setBackupCodes(null)}
+        cancelButtonProps={{ style: { display: 'none' } }}
+        okText="我已保存"
+      >
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="每个备用码仅可使用一次，仅在此显示一次。当无法使用验证器时可用备用码登录。"
+        />
+        <Space wrap>
+          {backupCodes?.map((c) => (
+            <Typography.Text key={c} code copyable>
+              {c}
+            </Typography.Text>
+          ))}
+        </Space>
+      </Modal>
+    </div>
+  );
+}
 
 export default function Profile() {
   const { message } = AntdApp.useApp();
@@ -77,7 +244,12 @@ export default function Profile() {
                     <Form.Item label="原密码" name="oldPassword" rules={[{ required: true }]}>
                       <Input.Password />
                     </Form.Item>
-                    <Form.Item label="新密码" name="newPassword" rules={[{ required: true, min: 4 }]}>
+                    <Form.Item
+                      label="新密码"
+                      name="newPassword"
+                      extra="至少 8 位，需包含大小写字母与数字"
+                      rules={[{ required: true, min: 8 }]}
+                    >
                       <Input.Password />
                     </Form.Item>
                     <Button type="primary" htmlType="submit">
@@ -85,6 +257,11 @@ export default function Profile() {
                     </Button>
                   </Form>
                 ),
+              },
+              {
+                key: 'mfa',
+                label: '二次验证',
+                children: <MfaPanel />,
               },
             ]}
           />

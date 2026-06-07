@@ -8,6 +8,8 @@ export interface UserAuthInfo {
   dataScopes: string[];
   isSuperAdmin: boolean;
   deptId: number | null;
+  /** 会话版本号，用于使旧 token 失效 */
+  tokenVersion: number;
 }
 
 const CACHE_PREFIX = 'user:auth:';
@@ -34,7 +36,14 @@ export class PermissionService {
     });
 
     if (!user) {
-      return { roles: [], permissions: [], dataScopes: [], isSuperAdmin: false, deptId: null };
+      return {
+        roles: [],
+        permissions: [],
+        dataScopes: [],
+        isSuperAdmin: false,
+        deptId: null,
+        tokenVersion: 0,
+      };
     }
 
     const roles = user.roles.map((ur) => ur.role.code);
@@ -57,9 +66,19 @@ export class PermissionService {
       dataScopes,
       isSuperAdmin: user.isSuperAdmin,
       deptId: user.deptId,
+      tokenVersion: user.tokenVersion,
     };
     await this.redis.setJson(cacheKey, info, CACHE_TTL);
     return info;
+  }
+
+  /** 使该用户所有已签发的 token 失效（改密 / 强制下线）：tokenVersion +1 并清缓存 */
+  async invalidateUserSessions(userId: number): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    await this.clearUserAuth(userId);
   }
 
   /** 清除用户权限缓存（角色/菜单变更后调用） */

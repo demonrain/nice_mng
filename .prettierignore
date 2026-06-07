@@ -1,0 +1,7 @@
+node_modules
+dist
+build
+pnpm-lock.yaml
+docker/volumes
+apps/api/prisma/generated
+*.md

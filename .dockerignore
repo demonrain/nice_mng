@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/build
+**/.git
+**/.env
+**/.env.local
+docker/volumes
+**/*.log
+**/.DS_Store
+apps/api/uploads

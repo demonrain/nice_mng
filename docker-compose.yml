@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nice}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nice_pwd_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-nice_admin}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./docker/volumes/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nice} -d ${POSTGRES_DB:-nice_admin}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nice-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: nice-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    volumes:
+      - ./docker/volumes/redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nice-net
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      args:
+        DB_PROVIDER: ${DB_PROVIDER:-postgresql}
+    container_name: nice-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      TZ: ${TZ:-Asia/Shanghai}
+      API_PORT: 3000
+      API_PREFIX: ${API_PREFIX:-/api}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nice}:${POSTGRES_PASSWORD:-nice_pwd_change_me}@postgres:5432/${POSTGRES_DB:-nice_admin}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-please_change_this_access_secret}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-2h}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-please_change_this_refresh_secret}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+    volumes:
+      - ./docker/volumes/uploads:/app/uploads
+    networks:
+      - nice-net
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: nice-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '8080:80'
+    networks:
+      - nice-net
+
+networks:
+  nice-net:
+    driver: bridge

@@ -1,0 +1,346 @@
+// nice-admin 数据模型
+// 文档：docs/architecture.md、docs/database.md
+//
+// 多数据源 / 多数据库支持：
+//   datasource 的 provider 由脚本 scripts/set-db-provider.mjs 根据环境变量
+//   DB_PROVIDER(postgresql|mysql) 在 generate/migrate 前自动写入下面的 PROVIDER 行。
+//   所有长文本字段统一标注 @db.Text，保证 PostgreSQL 与 MySQL 双兼容
+//   （MySQL 下普通 String 默认 VARCHAR(191)，长内容必须用 Text）。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // DB_PROVIDER_LINE 由脚本自动维护，请勿手改
+  url      = env("DATABASE_URL")
+}
+
+// ======================= RBAC =======================
+
+model User {
+  id           Int        @id @default(autoincrement())
+  username     String     @unique
+  password     String
+  nickname     String     @default("")
+  avatar       String?
+  email        String?
+  phone        String?
+  gender       Int        @default(0) // 0 未知 1 男 2 女
+  status       Int        @default(1) // 1 启用 0 停用
+  remark       String?    @db.Text
+  isSuperAdmin Boolean    @default(false)
+  deptId       Int?
+  dept         Dept?      @relation(fields: [deptId], references: [id], onDelete: SetNull)
+  roles        UserRole[]
+  posts        UserPost[]
+  loginLogs    LoginLog[]
+  operLogs     OperLog[]
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([deptId])
+  @@map("sys_user")
+}
+
+model Role {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  code      String     @unique // 角色标识，如 super_admin
+  sort      Int        @default(0)
+  status    Int        @default(1)
+  dataScope String     @default("ALL") // ALL CUSTOM DEPT DEPT_AND_CHILD SELF
+  remark    String?    @db.Text
+  users     UserRole[]
+  menus     RoleMenu[]
+  depts     RoleDept[] // dataScope=CUSTOM 时的自定义部门
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("sys_role")
+}
+
+model Menu {
+  id        Int        @id @default(autoincrement())
+  parentId  Int?
+  name      String
+  title     String
+  type      String     @default("MENU") // DIR MENU BUTTON
+  path      String?
+  component String?
+  redirect  String?
+  icon      String?
+  perm      String? // 权限标识，BUTTON 类型用，如 system:user:add
+  sort      Int        @default(0)
+  visible   Boolean    @default(true)
+  keepAlive Boolean    @default(false)
+  link      String?
+  status    Int        @default(1)
+  parent    Menu?      @relation("MenuChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Menu[]     @relation("MenuChildren")
+  roles     RoleMenu[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([parentId])
+  @@map("sys_menu")
+}
+
+model Dept {
+  id        Int        @id @default(autoincrement())
+  parentId  Int?
+  name      String
+  sort      Int        @default(0)
+  leader    String?
+  phone     String?
+  email     String?
+  status    Int        @default(1)
+  parent    Dept?      @relation("DeptChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Dept[]     @relation("DeptChildren")
+  users     User[]
+  roleDepts RoleDept[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([parentId])
+  @@map("sys_dept")
+}
+
+model Post {
+  id        Int        @id @default(autoincrement())
+  name      String
+  code      String     @unique
+  sort      Int        @default(0)
+  status    Int        @default(1)
+  remark    String?    @db.Text
+  users     UserPost[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("sys_post")
+}
+
+// ---------- 关联表 ----------
+
+model UserRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("sys_user_role")
+}
+
+model UserPost {
+  userId Int
+  postId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@map("sys_user_post")
+}
+
+model RoleMenu {
+  roleId Int
+  menuId Int
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menu   Menu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, menuId])
+  @@map("sys_role_menu")
+}
+
+model RoleDept {
+  roleId Int
+  deptId Int
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  dept   Dept @relation(fields: [deptId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, deptId])
+  @@map("sys_role_dept")
+}
+
+// ======================= 系统 =======================
+
+model DictType {
+  id        Int        @id @default(autoincrement())
+  name      String
+  type      String     @unique
+  status    Int        @default(1)
+  remark    String?    @db.Text
+  data      DictData[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("sys_dict_type")
+}
+
+model DictData {
+  id         Int      @id @default(autoincrement())
+  dictTypeId Int
+  dictType   DictType @relation(fields: [dictTypeId], references: [id], onDelete: Cascade)
+  label      String
+  value      String
+  tagType    String?
+  cssClass   String?
+  sort       Int      @default(0)
+  isDefault  Boolean  @default(false)
+  status     Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([dictTypeId])
+  @@map("sys_dict_data")
+}
+
+model Config {
+  id        Int      @id @default(autoincrement())
+  name      String
+  key       String   @unique
+  value     String   @db.Text
+  builtin   Boolean  @default(false)
+  remark    String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sys_config")
+}
+
+model OperLog {
+  id            Int      @id @default(autoincrement())
+  title         String
+  businessType  String   @default("OTHER")
+  method        String
+  requestMethod String
+  url           String   @db.Text
+  ip            String?
+  location      String?
+  params        String?  @db.Text
+  result        String?  @db.Text
+  status        Int      @default(1)
+  errorMsg      String?  @db.Text
+  costMs        Int      @default(0)
+  operatorId    Int?
+  operator      User?    @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operName      String?
+  createdAt     DateTime @default(now())
+
+  @@index([operatorId])
+  @@index([createdAt])
+  @@map("sys_oper_log")
+}
+
+model LoginLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  username  String
+  ip        String?
+  location  String?
+  browser   String?
+  os        String?
+  status    Int      @default(1)
+  message   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("sys_login_log")
+}
+
+model FileRecord {
+  id           Int      @id @default(autoincrement())
+  originalName String
+  filename     String
+  path         String   @db.Text
+  url          String   @db.Text
+  mimetype     String
+  size         Int
+  uploaderId   Int?
+  createdAt    DateTime @default(now())
+
+  @@map("sys_file")
+}
+
+// ======================= 高级 =======================
+
+model Job {
+  id            Int      @id @default(autoincrement())
+  name          String
+  group         String   @default("DEFAULT")
+  invokeTarget  String // 已注册的 handler 名称
+  cron          String
+  misfirePolicy Int      @default(0)
+  concurrent    Boolean  @default(false)
+  status        Int      @default(0) // 1 运行 0 暂停
+  remark        String?  @db.Text
+  logs          JobLog[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("sys_job")
+}
+
+model JobLog {
+  id           Int      @id @default(autoincrement())
+  jobId        Int
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobName      String
+  invokeTarget String
+  status       Int      @default(1)
+  message      String?  @db.Text
+  costMs       Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([jobId])
+  @@map("sys_job_log")
+}
+
+// 代码生成元数据
+model GenTable {
+  id           Int      @id @default(autoincrement())
+  tableName    String   @unique
+  tableComment String
+  className    String // 实体类名 如 Product
+  moduleName   String // 模块名 如 business
+  businessName String // 业务名 如 product
+  functionName String // 功能名 如 商品
+  columns      String   @default("[]") @db.Text // 字段定义 JSON
+  options      String   @default("{}") @db.Text // 生成选项 JSON
+  remark       String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("gen_table")
+}
+
+// 低代码表单 schema
+model FormSchema {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  schema    String   @default("{}") @db.Text // 表单 schema JSON
+  remark    String?  @db.Text
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sys_form_schema")
+}
+
+// 公告/通知
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  type      String   @default("NOTICE") // NOTICE 通知 ANNOUNCE 公告
+  content   String   @db.Text
+  status    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sys_notice")
+}

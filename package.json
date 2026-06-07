@@ -1,0 +1,36 @@
+{
+  "name": "nice-admin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "企业级全栈后台管理系统 - React + NestJS + PostgreSQL + Redis + Docker",
+  "packageManager": "pnpm@9.1.0",
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "build:shared": "pnpm --filter @nice-admin/shared build",
+    "dev": "pnpm build:shared && pnpm -r --parallel dev",
+    "dev:web": "pnpm build:shared && pnpm --filter @nice-admin/web dev",
+    "dev:api": "pnpm build:shared && pnpm --filter @nice-admin/api dev",
+    "build": "pnpm build:shared && pnpm --filter @nice-admin/api build && pnpm --filter @nice-admin/web build",
+    "build:web": "pnpm build:shared && pnpm --filter @nice-admin/web build",
+    "build:api": "pnpm build:shared && pnpm --filter @nice-admin/api build",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "db:generate": "pnpm --filter @nice-admin/api prisma:generate",
+    "db:push": "pnpm --filter @nice-admin/api prisma:push",
+    "db:migrate": "pnpm --filter @nice-admin/api prisma:migrate",
+    "db:seed": "pnpm --filter @nice-admin/api prisma:seed",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.9",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.1.0"
+  }
+}

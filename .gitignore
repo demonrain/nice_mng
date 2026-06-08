@@ -6,6 +6,10 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# 误编译到 shared/src 的产物（正确输出目录为 dist/）
+packages/shared/src/**/*.js
+packages/shared/src/**/*.js.map
+packages/shared/src/**/*.d.ts
 
 # env
 .env

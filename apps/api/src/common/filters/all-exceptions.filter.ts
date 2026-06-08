@@ -9,6 +9,22 @@ import {
 import { Request, Response } from 'express';
 import { BizCode } from '@nice-admin/shared';
 
+/** 将 HTTP 状态码映射为业务码 */
+function mapHttpStatusToBizCode(status: number): BizCode {
+  switch (status) {
+    case HttpStatus.UNAUTHORIZED:
+      return BizCode.UNAUTHORIZED;
+    case HttpStatus.FORBIDDEN:
+      return BizCode.FORBIDDEN;
+    case HttpStatus.NOT_FOUND:
+      return BizCode.NOT_FOUND;
+    case HttpStatus.UNPROCESSABLE_ENTITY:
+      return BizCode.VALIDATION;
+    default:
+      return BizCode.ERROR;
+  }
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exception');
@@ -22,7 +38,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let message = '服务器内部错误';
     let code = BizCode.SERVER_ERROR;
 
-    if (exception instanceof HttpException) {
+      if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
       if (typeof res === 'string') {
@@ -31,7 +47,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const m = (res as Record<string, unknown>).message;
         message = Array.isArray(m) ? (m as string[]).join('; ') : String(m ?? exception.message);
       }
-      code = status;
+      code = mapHttpStatusToBizCode(status);
     } else if (exception instanceof Error) {
       message = exception.message;
       this.logger.error(exception.message, exception.stack);

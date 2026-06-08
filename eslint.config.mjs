@@ -10,12 +10,28 @@ export default tseslint.config(
       '**/dist/**',
       '**/node_modules/**',
       '**/build/**',
+      'packages/shared/src/**/*.js',
       'apps/api/prisma/generated/**',
       'docker/volumes/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  // Node 脚本(.js/.mjs/.cjs)：声明 Node 全局，避免 no-undef 误报
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

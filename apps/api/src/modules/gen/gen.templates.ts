@@ -34,7 +34,7 @@ function classValidatorDecorator(col: GenColumn): string {
     Date: 'IsDateString',
   };
   const dec = map[col.tsType] || 'IsString';
-  const lines = [];
+  const lines: string[] = [];
   if (!col.isRequired) lines.push('  @IsOptional()');
   lines.push(`  @${dec}()`);
   lines.push(`  ${col.name}${col.isRequired ? '!' : '?'}: ${col.tsType};`);

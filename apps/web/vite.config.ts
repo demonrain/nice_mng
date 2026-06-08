@@ -7,7 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      '@nice-admin/shared': resolve(__dirname, '../../packages/shared/src'),
+      // 显式指向 TS 入口，避免误解析 src 下残留的 index.js
+      '@nice-admin/shared': resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
   },
   server: {

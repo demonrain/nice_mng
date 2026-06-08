@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { WS_EVENTS } from '@nice-admin/shared';
 
-interface OnlineClient {
+export interface OnlineClient {
   socketId: string;
   userId: number;
   username: string;

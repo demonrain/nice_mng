@@ -22,7 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@/*": ["src/*"],
-      "@nice-admin/shared": ["../../packages/shared/src"]
+      "@nice-admin/shared": ["../../packages/shared/dist"]
     }
   },
   "include": ["src/**/*"],

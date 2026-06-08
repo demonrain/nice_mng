@@ -41,7 +41,7 @@ export async function parseExcel<T extends Record<string, unknown>>(
   columns: ExcelColumn[],
 ): Promise<ParseResult<T>> {
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buffer);
+  await wb.xlsx.load(buffer as unknown as Parameters<ExcelJS.Workbook['xlsx']['load']>[0]);
   const ws = wb.worksheets[0];
   const rows: T[] = [];
   const errors: { row: number; message: string }[] = [];

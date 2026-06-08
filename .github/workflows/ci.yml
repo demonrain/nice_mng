@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main, master]
 
-# 让 checkout / setup 等 JS Action 使用 Node.js 24 运行时，消除 Node 20 弃用告警
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,7 +23,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies

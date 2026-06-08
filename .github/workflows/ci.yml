@@ -24,14 +24,15 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
+      # 未提交 pnpm-lock.yaml，故不启用 cache: pnpm（缓存依赖 lockfile）
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # 无 lockfile 时用 --no-frozen-lockfile；提交 lockfile 后可改回 --frozen-lockfile 并恢复缓存
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build shared package
         run: pnpm --filter @nice-admin/shared build

@@ -22,7 +22,12 @@ function buildItems(routes: RouteItem[]): MenuItem[] {
     });
 }
 
-export default function SiderMenu() {
+interface SiderMenuProps {
+  mode?: 'inline' | 'horizontal';
+  theme?: 'dark' | 'light';
+}
+
+export default function SiderMenu({ mode = 'inline', theme = 'dark' }: SiderMenuProps) {
   const routes = useMenuStore((s) => s.routes);
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,13 +40,13 @@ export default function SiderMenu() {
 
   return (
     <Menu
-      mode="inline"
-      theme="dark"
+      mode={mode}
+      theme={theme}
       selectedKeys={[location.pathname]}
-      defaultOpenKeys={openKeys}
+      defaultOpenKeys={mode === 'inline' ? openKeys : undefined}
       items={items}
       onClick={({ key }) => navigate(key)}
-      style={{ borderInlineEnd: 'none' }}
+      style={{ borderInlineEnd: 'none', flex: mode === 'horizontal' ? 1 : undefined, minWidth: 0 }}
     />
   );
 }

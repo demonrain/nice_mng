@@ -36,6 +36,8 @@ model User {
   mfaBackupCodes String?  @db.Text // 备用码(bcrypt 哈希后的 JSON 数组)
   tokenVersion Int        @default(0) // 会话版本，改密/强退后 +1 使旧 token 失效
   pwdUpdatedAt DateTime? // 密码最后修改时间(用于过期策略)
+  tenantId     Int? // 多租户归属(null=平台/不启用租户)
+  tenant       Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   deptId       Int?
   dept         Dept?      @relation(fields: [deptId], references: [id], onDelete: SetNull)
   roles        UserRole[]
@@ -266,6 +268,7 @@ model FileRecord {
   url          String   @db.Text
   mimetype     String
   size         Int
+  storage      String   @default("local") // 存储位置：local/oss/s3/minio
   uploaderId   Int?
   createdAt    DateTime @default(now())
 
@@ -349,4 +352,152 @@ model Notice {
   updatedAt DateTime @updatedAt
 
   @@map("sys_notice")
+}
+
+// ======================= 二期：多租户 =======================
+
+model Tenant {
+  id           Int      @id @default(autoincrement())
+  name         String
+  code         String   @unique // 租户标识
+  status       Int      @default(1)
+  contactName  String?
+  contactPhone String?
+  expireAt     DateTime? // 到期时间(null=永久)
+  remark       String?  @db.Text
+  users        User[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("sys_tenant")
+}
+
+// ======================= 二期：消息中心 =======================
+
+model MessageTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  channel   String   @default("INTERNAL") // INTERNAL/EMAIL/SMS/WEBHOOK
+  title     String
+  content   String   @db.Text // 支持 {{var}} 占位
+  status    Int      @default(1)
+  remark    String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sys_message_template")
+}
+
+model Message {
+  id        Int              @id @default(autoincrement())
+  title     String
+  content   String           @db.Text
+  type      String           @default("NOTICE") // NOTICE/TODO/ALERT
+  channel   String           @default("INTERNAL")
+  senderId  Int?
+  receipts  MessageReceipt[]
+  createdAt DateTime         @default(now())
+
+  @@map("sys_message")
+}
+
+model MessageReceipt {
+  id        Int      @id @default(autoincrement())
+  messageId Int
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    Int
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([messageId])
+  @@map("sys_message_receipt")
+}
+
+// ======================= 二期：工作流 =======================
+
+model WorkflowDef {
+  id        Int                @id @default(autoincrement())
+  name      String
+  code      String             @unique
+  category  String?
+  nodes     String             @default("[]") @db.Text // 审批节点 JSON
+  status    Int                @default(1)
+  remark    String?            @db.Text
+  instances WorkflowInstance[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@map("wf_def")
+}
+
+model WorkflowInstance {
+  id          Int            @id @default(autoincrement())
+  defId       Int
+  def         WorkflowDef    @relation(fields: [defId], references: [id], onDelete: Cascade)
+  defCode     String
+  title       String
+  businessKey String?
+  status      String         @default("RUNNING") // RUNNING/APPROVED/REJECTED/CANCELED
+  currentNode String? // 当前节点 key
+  nodeIndex   Int            @default(0)
+  formData    String         @default("{}") @db.Text
+  initiatorId Int
+  tasks       WorkflowTask[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([initiatorId])
+  @@map("wf_instance")
+}
+
+model WorkflowTask {
+  id         Int              @id @default(autoincrement())
+  instanceId Int
+  instance   WorkflowInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  nodeKey    String
+  nodeName   String
+  assigneeId Int?
+  status     String           @default("PENDING") // PENDING/APPROVED/REJECTED
+  comment    String?          @db.Text
+  actedAt    DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([instanceId])
+  @@index([assigneeId])
+  @@map("wf_task")
+}
+
+// ======================= 二期：国际化词条 =======================
+
+model I18nEntry {
+  id        Int      @id @default(autoincrement())
+  lang      String // zh / en ...
+  namespace String   @default("translation")
+  key       String // 支持点号分层 如 common.search
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lang, namespace, key])
+  @@index([lang])
+  @@map("sys_i18n")
+}
+
+// ======================= 二期：BI 仪表盘 =======================
+
+model Dashboard {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  layout    String   @default("[]") @db.Text // 组件卡片配置 JSON
+  isDefault Boolean  @default(false)
+  ownerId   Int?
+  remark    String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sys_dashboard")
 }

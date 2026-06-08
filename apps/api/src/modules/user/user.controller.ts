@@ -8,13 +8,29 @@ import {
   Post,
   Put,
   Query,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { UserService } from './user.service';
 import { ProfileService } from './profile.service';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { OperLog } from '../../common/decorators/oper-log.decorator';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
+import { exportToExcel, buildTemplate, parseExcel, ExcelColumn } from '../../common/utils/excel.util';
+
+const USER_EXCEL_COLUMNS: ExcelColumn[] = [
+  { key: 'username', header: '用户名', required: true, width: 18 },
+  { key: 'nickname', header: '昵称', width: 18 },
+  { key: 'email', header: '邮箱', width: 24 },
+  { key: 'phone', header: '手机号', width: 16 },
+  { key: 'deptName', header: '部门', width: 18 },
+  { key: 'status', header: '状态', width: 10 },
+];
 import {
   ChangeStatusDto,
   CreateUserDto,
@@ -52,6 +68,43 @@ export class UserController {
   @ApiOperation({ summary: '用户列表' })
   list(@Query() query: QueryUserDto, @CurrentUser() user: AuthUser) {
     return this.userService.list(query, user);
+  }
+
+  // ---------- 导入导出 ----------
+  @Get('export')
+  @RequirePermissions('system:user:export')
+  @OperLog({ title: '用户管理', businessType: 'EXPORT' })
+  @ApiOperation({ summary: '导出用户(xlsx)' })
+  async export(@CurrentUser() user: AuthUser, @Res() res: Response) {
+    const rows = await this.userService.exportData(user);
+    const buffer = await exportToExcel(USER_EXCEL_COLUMNS, rows, '用户');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="users_${Date.now()}.xlsx"`);
+    res.end(buffer);
+  }
+
+  @Get('import/template')
+  @RequirePermissions('system:user:import')
+  @ApiOperation({ summary: '下载导入模板' })
+  async importTemplate(@Res() res: Response) {
+    const buffer = await buildTemplate(USER_EXCEL_COLUMNS);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="user_import_template.xlsx"');
+    res.end(buffer);
+  }
+
+  @Post('import')
+  @RequirePermissions('system:user:import')
+  @OperLog({ title: '用户管理', businessType: 'IMPORT' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
+  @ApiOperation({ summary: '导入用户(xlsx)' })
+  @UseInterceptors(FileInterceptor('file'))
+  async import(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('未接收到文件');
+    const { rows, errors } = await parseExcel<{ username?: string }>(file.buffer, USER_EXCEL_COLUMNS);
+    const result = await this.userService.importData(rows);
+    return { ...result, parseErrors: errors };
   }
 
   @Get(':id')

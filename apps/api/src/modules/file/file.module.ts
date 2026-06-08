@@ -23,6 +23,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { buildPageResult } from '../../common/utils/pagination.util';
 import { CurrentUser, AuthUser } from '../../common/decorators/current-user.decorator';
+import { StorageService } from './storage.service';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 
@@ -35,19 +36,21 @@ export class FileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly storage: StorageService,
   ) {}
 
   async save(file: Express.Multer.File, uploaderId: number) {
     if (!file) throw new BadRequestException('未接收到文件');
-    const url = `/uploads/${file.filename}`;
+    const { url, storedPath, storage } = await this.storage.persist(file);
     const record = await this.prisma.fileRecord.create({
       data: {
         originalName: file.originalname,
         filename: file.filename,
-        path: file.path,
+        path: storedPath,
         url,
         mimetype: file.mimetype,
         size: file.size,
+        storage,
         uploaderId,
       },
     });
@@ -114,6 +117,6 @@ export class FileController {
 
 @Module({
   controllers: [FileController],
-  providers: [FileService],
+  providers: [FileService, StorageService],
 })
 export class FileModule {}

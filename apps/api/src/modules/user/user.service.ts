@@ -178,4 +178,58 @@ export class UserService {
     if (!exists) throw new NotFoundException('用户不存在');
     return exists;
   }
+
+  /** 导出（受数据权限约束） */
+  async exportData(current: AuthUser) {
+    const where: Prisma.UserWhereInput = {};
+    const viewable = await this.resolveViewableDeptIds(current);
+    if (viewable !== null) where.deptId = { in: viewable };
+    const users = await this.prisma.user.findMany({
+      where,
+      include: { dept: { select: { name: true } } },
+      orderBy: { id: 'asc' },
+    });
+    return users.map((u) => ({
+      username: u.username,
+      nickname: u.nickname,
+      email: u.email ?? '',
+      phone: u.phone ?? '',
+      deptName: u.dept?.name ?? '',
+      status: u.status === 1 ? '启用' : '停用',
+    }));
+  }
+
+  /** 批量导入（默认初始密码 123456） */
+  async importData(rows: { username?: string; nickname?: string; email?: string; phone?: string }[]) {
+    let success = 0;
+    const fails: string[] = [];
+    for (const r of rows) {
+      const username = String(r.username ?? '').trim();
+      if (!username) {
+        fails.push('空用户名行已跳过');
+        continue;
+      }
+      try {
+        const exists = await this.prisma.user.findUnique({ where: { username } });
+        if (exists) {
+          fails.push(`${username}: 已存在`);
+          continue;
+        }
+        const hashed = await bcrypt.hash('123456', 10);
+        await this.prisma.user.create({
+          data: {
+            username,
+            password: hashed,
+            nickname: r.nickname || username,
+            email: r.email ? String(r.email) : null,
+            phone: r.phone ? String(r.phone) : null,
+          },
+        });
+        success += 1;
+      } catch (e) {
+        fails.push(`${username}: ${e instanceof Error ? e.message : '导入失败'}`);
+      }
+    }
+    return { success, failed: fails.length, fails };
+  }
 }

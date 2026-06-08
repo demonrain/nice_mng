@@ -54,4 +54,20 @@ i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+/**
+ * 从后端国际化模块动态加载词条并合并到当前资源（P1-5 运营态多语言）。
+ * 失败时静默降级到内置词条。
+ */
+export async function loadRemoteI18n(lang: string): Promise<void> {
+  try {
+    const { i18nApi } = await import('@/api/endpoints');
+    const remote = await i18nApi.resources(lang);
+    if (remote && typeof remote === 'object') {
+      i18n.addResourceBundle(lang, 'translation', remote, true, true);
+    }
+  } catch {
+    /* 后端不可用或未配置词条，使用内置词条 */
+  }
+}
+
 export default i18n;

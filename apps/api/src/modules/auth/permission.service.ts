@@ -8,6 +8,7 @@ export interface UserAuthInfo {
   dataScopes: string[];
   isSuperAdmin: boolean;
   deptId: number | null;
+  tenantId: number | null;
   /** 会话版本号，用于使旧 token 失效 */
   tokenVersion: number;
 }
@@ -42,6 +43,7 @@ export class PermissionService {
         dataScopes: [],
         isSuperAdmin: false,
         deptId: null,
+        tenantId: null,
         tokenVersion: 0,
       };
     }
@@ -66,6 +68,7 @@ export class PermissionService {
       dataScopes,
       isSuperAdmin: user.isSuperAdmin,
       deptId: user.deptId,
+      tenantId: user.tenantId,
       tokenVersion: user.tokenVersion,
     };
     await this.redis.setJson(cacheKey, info, CACHE_TTL);

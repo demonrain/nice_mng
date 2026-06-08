@@ -134,3 +134,53 @@ export const formApi = {
   update: (id: number, data: AnyParams) => http.put(`/tool/form/${id}`, data),
   remove: (ids: number[]) => http.delete(`/tool/form/${ids.join(',')}`),
 };
+
+// ============ 二期 ============
+
+export const tenantApi = {
+  list: (params: AnyParams) => http.get<PageResult<any>>('/system/tenant', { params }),
+  create: (data: AnyParams) => http.post('/system/tenant', data),
+  update: (id: number, data: AnyParams) => http.put(`/system/tenant/${id}`, data),
+  remove: (ids: number[]) => http.delete(`/system/tenant/${ids.join(',')}`),
+};
+
+export const messageApi = {
+  listTemplate: (params: AnyParams) => http.get<PageResult<any>>('/system/message/template', { params }),
+  createTemplate: (data: AnyParams) => http.post('/system/message/template', data),
+  updateTemplate: (id: number, data: AnyParams) => http.put(`/system/message/template/${id}`, data),
+  removeTemplate: (ids: number[]) => http.delete(`/system/message/template/${ids.join(',')}`),
+  send: (data: AnyParams) => http.post('/system/message/send', data),
+  mine: (params: AnyParams) => http.get<PageResult<any>>('/system/message/mine', { params }),
+  unread: () => http.get<{ count: number }>('/system/message/unread'),
+  read: (id: number) => http.put(`/system/message/read/${id}`),
+  readAll: () => http.put('/system/message/read-all'),
+};
+
+export const i18nApi = {
+  list: (params: AnyParams) => http.get<PageResult<any>>('/system/i18n', { params }),
+  create: (data: AnyParams) => http.post('/system/i18n', data),
+  update: (id: number, data: AnyParams) => http.put(`/system/i18n/${id}`, data),
+  remove: (ids: number[]) => http.delete(`/system/i18n/${ids.join(',')}`),
+  resources: (lang: string) => http.get<Record<string, unknown>>('/system/i18n/resources', { params: { lang } }),
+  langs: () => http.get<string[]>('/system/i18n/langs'),
+};
+
+export const workflowApi = {
+  listDef: (params: AnyParams) => http.get<PageResult<any>>('/workflow/def', { params }),
+  createDef: (data: AnyParams) => http.post('/workflow/def', data),
+  updateDef: (id: number, data: AnyParams) => http.put(`/workflow/def/${id}`, data),
+  removeDef: (ids: number[]) => http.delete(`/workflow/def/${ids.join(',')}`),
+  start: (data: AnyParams) => http.post('/workflow/start', data),
+  myTasks: (params: AnyParams) => http.get<PageResult<any>>('/workflow/task/mine', { params }),
+  act: (id: number, data: AnyParams) => http.post(`/workflow/task/${id}/act`, data),
+  instances: (params: AnyParams) => http.get<PageResult<any>>('/workflow/instance', { params }),
+  instanceDetail: (id: number) => http.get<any>(`/workflow/instance/${id}`),
+};
+
+export const dashboardApi = {
+  list: (params: AnyParams) => http.get<PageResult<any>>('/system/dashboard', { params }),
+  getDefault: () => http.get<any>('/system/dashboard/default'),
+  create: (data: AnyParams) => http.post('/system/dashboard', data),
+  update: (id: number, data: AnyParams) => http.put(`/system/dashboard/${id}`, data),
+  remove: (ids: number[]) => http.delete(`/system/dashboard/${ids.join(',')}`),
+};

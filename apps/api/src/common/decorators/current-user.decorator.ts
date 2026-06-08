@@ -8,6 +8,7 @@ export interface AuthUser {
   permissions: string[];
   deptId?: number | null;
   dataScopes?: string[];
+  tenantId?: number | null;
 }
 
 /** 从请求中取出当前登录用户（由 JwtStrategy 注入） */

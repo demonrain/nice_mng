@@ -22,6 +22,31 @@ export default () => ({
     dir: process.env.UPLOAD_DIR || 'uploads',
     maxSizeMb: parseInt(process.env.UPLOAD_MAX_SIZE_MB || '20', 10),
   },
+  storage: {
+    // 存储驱动：local(默认) | oss | s3 | minio
+    driver: process.env.STORAGE_DRIVER || 'local',
+    publicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL || '',
+    s3: {
+      endpoint: process.env.S3_ENDPOINT || '',
+      region: process.env.S3_REGION || '',
+      bucket: process.env.S3_BUCKET || '',
+      accessKey: process.env.S3_ACCESS_KEY || '',
+      secretKey: process.env.S3_SECRET_KEY || '',
+    },
+  },
+  mail: {
+    host: process.env.MAIL_HOST || '',
+    port: parseInt(process.env.MAIL_PORT || '465', 10),
+    secure: process.env.MAIL_SECURE !== 'false',
+    user: process.env.MAIL_USER || '',
+    pass: process.env.MAIL_PASS || '',
+    from: process.env.MAIL_FROM || '',
+    webhookUrl: process.env.MSG_WEBHOOK_URL || '',
+  },
+  tenant: {
+    // 是否启用多租户行级隔离过滤
+    enabled: process.env.TENANT_ENABLED === 'true',
+  },
   security: {
     // 登录失败锁定
     loginMaxFail: parseInt(process.env.SEC_LOGIN_MAX_FAIL || '5', 10),

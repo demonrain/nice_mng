@@ -99,7 +99,24 @@ docker compose -f docker-compose.mysql.yml up -d --build  # MySQL 部署
 - **新依赖**：`otplib`、`qrcode`（@types/qrcode）。安装后才能编译。
 - **默认 admin123 不满足新密码策略**（缺大写），改密时需满足策略；种子直写不拦截。
 - **新增配置**：`.env.example` 的 `SEC_*` 段。
-- 待办 P0-5：迁移规范化（`prisma/migrations` + CI）。
+
+### 二期 P1/P2 已全部实现（详见 `docs/phase2-features.md`）
+
+- **P1-1 多租户**：`sys_tenant` + `sys_user.tenantId`；`common/tenant/`（AsyncLocalStorage 上下文 + `TenantInterceptor` + `tenantWhere()`）；`modules/tenant`。env `TENANT_ENABLED`。
+- **P1-2 工作流**：`wf_def/wf_instance/wf_task`；`modules/workflow`（顺序审批，节点 JSON，WS 通知）。
+- **P1-3 消息中心**：`sys_message_template/sys_message/sys_message_receipt`；`modules/message` + `message.channels.ts`（INTERNAL/EMAIL(nodemailer)/WEBHOOK/SMS 预留）；前端顶栏 `MessageBell`。
+- **P1-4 存储抽象**：`modules/file/storage.service.ts`（local 已实现，oss/s3/minio 占位）；`sys_file.storage` 字段；env `STORAGE_DRIVER`。
+- **P1-5 i18n**：`sys_i18n`；`modules/i18n`（resources/langs 公开）；前端 `loadRemoteI18n()`。
+- **P1-6 导入导出**：`common/utils/excel.util.ts`（exceljs）；用户模块 export/import/template 接口示例。
+- **P2-1 可观测性**：`modules/observability`（prom-client，`/api/metrics` 公开 + summary）；`common/logger/json.logger.ts`（生产 JSON 日志）。
+- **P2-2 插件开关**：`app.module.ts` 的 `OPTIONAL_MODULES` + env `DISABLED_MODULES`；微前端见 `docs/plugin.md`。
+- **P2-3 代码生成落盘**：`POST /tool/gen/:id/generate` 写入 `apps/api/generated/`。
+- **P2-4 OpenAPI/SDK**：非生产启动写 `openapi.json`；`pnpm --filter @nice-admin/api gen:sdk` → `packages/shared/src/sdk.generated.ts`。
+- **P2-5 BI**：`sys_dashboard`；`modules/dashboard`；前端 `pages/bi/index.tsx`（按 layout JSON 渲染 stat/line/bar/pie）。
+- **P2-6 主题布局**：`store/app.ts` 增 `layoutMode/compact`；`layout/SettingsDrawer.tsx`；`MainLayout` 支持侧/顶/混合。
+- **P0-5 迁移规范**：`.github/workflows/ci.yml` + `docs/migration.md`。
+
+> 重要：二期新增大量 Prisma 模型/字段与新依赖（exceljs/prom-client/nodemailer）。**必须先 `pnpm install` 再 `pnpm db:generate`**，否则 `this.prisma.tenant` 等类型与 import 会报错（lint 通过但 tsc 需生成 client）。新菜单仅空库种子写入，升级旧库需手动补菜单。
 
 ## 8. 待办 / 可改进
 

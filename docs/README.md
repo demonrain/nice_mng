@@ -7,6 +7,9 @@
 | [modules.md](./modules.md) | 后端模块清单、前端页面清单、按钮级权限、数据模型 |
 | [database.md](./database.md) | 多数据源 / MySQL 支持、provider 切换、跨库兼容、额外数据源扩展 |
 | [security.md](./security.md) | 安全基线(P0)：限流、登录锁定/异地、MFA、密码强度、会话失效 |
+| [phase2-features.md](./phase2-features.md) | 二期功能说明：多租户/工作流/消息/存储/i18n/导入导出/可观测/BI/主题 |
+| [migration.md](./migration.md) | 数据库迁移规范(P0-5)：db push vs 版本化迁移、CI 校验 |
+| [plugin.md](./plugin.md) | 插件机制(P2-2)：后端模块开关 + 前端微前端方案 |
 | [tutorial.md](./tutorial.md) | 使用教程：登录、各功能操作、低代码/代码生成、二次开发速查 |
 | [deployment.md](./deployment.md) | Docker 一键部署、本地开发、常见问题 |
 | [extension-guide.md](./extension-guide.md) | 代码生成器、新增模块/页面/定时任务/低代码表单的完整流程 |
